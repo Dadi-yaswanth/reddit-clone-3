@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Reddit | Search</title>
+    <link rel="stylesheet" th:href="@{/css/search.css}"/>
+</head>
+<body>
+<main>
+    <header id="pageHeader">
+        <div id="header-logo">
+            <a href="/">
+                <img th:src="@{/images/Reddit-logo.png}" alt="logo" class="header-img"/>
+            </a>
+        </div>
+        <div id="home-nav">
+            <img th:src="@{/images/home.png}" alt="home" class="header-img"/>
+            <h4 class="header-text">Home</h4>
+        </div>
+        <div id="home-search">
+            <form action="/search/">
+                <input
+                        name="q"
+                        type="search"
+                        class="search-bar"
+                        placeholder="Search Reddit"
+                        th:value="${searchWord != null && searchWord != '' ? searchWord : ''}"
+                />
+            </form>
+        </div>
+        <div id="header-options" sec:authorize="isAnonymous()">
+            <a href="/login" class="login">Login</a>
+            <a href="/newRegister" class="register">Register</a>
+        </div>
+    </header>
+
+    <article id="mainArticle">
+        <div id="box">
+            <div id="results-box">
+                <div id="options">
+
+                    <div class="result-option">
+                        <a href="" class="option-name"
+                           th:href="@{'/search/?q=' + ${searchWord} + '&type=post'}"
+                           th:classappend="${(!type.equalsIgnoreCase('user'))
+                           && (!type.equalsIgnoreCase('sr')) ? 'option-active' : ''}"
+                        >Posts</a>
+                    </div>
+
+                    <div class="result-option">
+                        <a href="" class="option-name"
+                           th:href="@{'/search/?q=' + ${searchWord} + '&type=sr'}"
+                           th:classappend="${type.equalsIgnoreCase('sr') ? 'option-active' : ''}">Community</a>
+                    </div>
+
+                    <div class="result-option">
+                        <a href="" class="option-name"
+                           th:href="@{'/search/?q=' + ${searchWord} + '&type=user'}"
+                           th:classappend="${type.equalsIgnoreCase('user') ? 'option-active' : ''}">People</a>
+                    </div>
+                </div>
+
+                <div id="results">
+                    <!-- Result for posts -->
+                    <div th:if="${(!type.equalsIgnoreCase('user')) && (!type.equalsIgnoreCase('sr'))}">
+                        <a href="" class="result-link" th:each=" post: ${searchData}">
+                            <div class="result">
+                                <div class="result-user-info">
+                                    <a href="" class="post-c-name" th:if="${post.getIsCommunity()}">
+                                        <h4 th:text="${'r/' + post.getCommunity().getCommunityName()}"></h4>
+                                    </a>
+
+                                    <a href="" class="post-c-name" th:if="${!post.getIsCommunity()}">
+                                        <h th:text="${'u/' + post.getUser().getUsername()}"></h>
+                                    </a>
+
+                                    <p style="margin:0px 5px">. posted by</p>
+                                    <a href="" class="post-c-name">
+                                        <h4 th:text="${'u/' + post.getUser().getUsername()}"></h4>
+                                    </a>
+                                    <p style="margin-left: 5px">on
+                                        <span th:text="${#dates.format(post.getPublishedAt(),'dd-MMMM-yyyy')}"></span>
+                                    </p>
+                                </div>
+                                <div class="result-post-data">
+                                    <div class="result-post-content">
+                                        <p th:text="${post.getTitle()}"></p>
+
+                                    </div>
+                                </div>
+                                <div class="result-post-values">
+                                    <p class="value-name">
+                                        <span class="result-values" th:text="${post.getUpVotes()}"></span>upvote
+                                    </p>
+                                    <p class="value-name">
+                                        <span class="result-values"
+                                              th:text="${post.getComments() != null ? post.getComments().size() : '0' }"></span>Comments
+                                    </p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <!-- Result for community -->
+
+                    <div th:if="${type.equalsIgnoreCase('sr')}">
+                        <div class="result" th:each="community : ${searchData}">
+                            <div class="community-result">
+                                <div>
+                                    <a style="color: black;"
+                                       th:href="@{'/view-community/' + ${community.getCommunityName()} }">
+                                        <div class="result-user-info">
+                                            <p>
+                                                <span th:text="'r/'+${community.getCommunityName()}"></span>
+                                            </p>
+                                        </div>
+                                    </a>
+                                    <div class="result-user-data">
+                                        <div class="result-user-about">
+                                            <p th:if="${community.getAbout() != null}"
+                                               th:text="${community.getAbout()}"></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="follow-btn">
+                                    <form
+                                            sec:authorize="isAuthenticated()"
+                                            th:if="${!community.getOwnerId().getUsername().equalsIgnoreCase(userData.getUsername())}"
+                                            th:action="@{${community.getCommunityMembers().contains(userData) ? '/remove-community':'/join-communtiy' }}"
+                                            method="post">
+                                        <input type="hidden" name="communityName"
+                                               th:value="${community.communityName}"/>
+                                        <input
+                                                type="submit"
+                                                th:value="${community.getCommunityMembers().contains(userData) ? 'joined' : 'join'}"
+                                                class="community-join"
+                                        />
+                                    </form>
+
+                                    <form
+                                            sec:authorize="isAnonymous()"
+                                            action="/join-community"
+                                            method="post">
+                                        <input type="hidden" name="communityName"
+                                               th:value="${community.communityName}"/>
+                                        <input
+                                                type="submit"
+                                                value="join"
+                                                class="community-join"
+                                        />
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!--  Result for username -->
+                    <div th:if="${type.equalsIgnoreCase('user')}">
+                        <div class="result" th:each="user : ${searchData}">
+                            <div class="community-result">
+                                <a style="color: black">
+                                    <div>
+                                        <div class="result-user-info">
+                                            <p>
+                                                <span th:text="'u/' + ${user.getUsername()}"></span>. <span th:text="${user.getKarma()}"></span> karma
+                                            </p>
+                                        </div>
+                                        <div class="result-user-data">
+                                            <div class="result-user-about">
+                                                <p>About the user not added yet</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </a>
+                                <!--                                <div class="follow-btn">-->
+                                <!--                                    <form action="">-->
+                                <!--                                        <input-->
+                                <!--                                                type="submit"-->
+                                <!--                                                value="follow"-->
+                                <!--                                                class="community-join"-->
+                                <!--                                        />-->
+                                <!--                                    </form>-->
+                                <!--                                </div>-->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <nav id="mainNav"></nav>
+</main>
+</body>
+</html>
